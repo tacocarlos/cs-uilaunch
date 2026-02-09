@@ -1,0 +1,3 @@
+# ./src/ will contain student code, and thus is ignored. This is counterintuitive.
+src/ 
+*.zip
