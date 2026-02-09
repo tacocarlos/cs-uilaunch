@@ -1,8 +1,10 @@
 # Computer Science UILaunch
 This is a "launcher" for a CS UIL programming contest for students to practice with, allowing students to run, check, and judge their code. It requires no (formal) compilation step and no external libraries, so it should work with a minimal Java install on "every" (Linux, MacOS, Windows) operating system.
 
-## Running The Program
-```bash
+## Running The Program (starting from GitHub)
+```shell
+git clone https://github.com/tacocarlos/cs-uilaunch.git
+cd cs-uilaunch
 java UILaunch.java
 ```
 
