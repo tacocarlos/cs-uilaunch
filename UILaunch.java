@@ -39,14 +39,29 @@ public class UILaunch {
     private static final int ATTEMPT_PENALTY = 5;
 
     // things inherent to the OS
-    public static final boolean IsWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
+    public static final boolean IsWindows = System.getProperty("os.name")
+        .toLowerCase()
+        .contains("windows");
+    public static final boolean IsMac = System.getProperty("os.name")
+        .toLowerCase()
+        .contains("mac");
+    public static final boolean IsUnix = !IsWindows && !IsMac;
     public static final String CurrentDir = System.getProperty("user.dir");
     public static final String TempDir = System.getProperty("java.io.tmpdir");
 
     // things that only need to be determined once
-    public static final String CompetitionID = String.format("csuil-practice-%d", System.currentTimeMillis());
-    public static final String CompetitionDirRoot = Path.of(TempDir, CompetitionID).toString();
-    public static final String CompetitionExecutionDir = Path.of(CompetitionDirRoot, "student-runtime").toString();
+    public static final String CompetitionID = String.format(
+        "csuil-practice-%d",
+        System.currentTimeMillis()
+    );
+    public static final String CompetitionDirRoot = Path.of(
+        TempDir,
+        CompetitionID
+    ).toString();
+    public static final String CompetitionExecutionDir = Path.of(
+        CompetitionDirRoot,
+        "student-runtime"
+    ).toString();
     // only need to be determined once, but can't do it when the program starts
     public static String JudgeFolderPath;
     public static String CompetitionDir; // depends on the contest directory
@@ -72,6 +87,7 @@ public class UILaunch {
     }
 
     public static class IOUtils {
+
         public static Set<String> listFiles(String dir) {
             return listFiles(dir, true);
         }
@@ -80,11 +96,14 @@ public class UILaunch {
             Set<String> filePaths = new HashSet<>();
             try (Stream<Path> stream = Files.list(Paths.get(dir))) {
                 if (ignoreDir) {
-                    filePaths = stream.filter(f -> !Files.isDirectory(f)).map(Path::toString)
-                            .collect(Collectors.toSet());
+                    filePaths = stream
+                        .filter(f -> !Files.isDirectory(f))
+                        .map(Path::toString)
+                        .collect(Collectors.toSet());
                 } else {
-                    filePaths = stream.map(Path::toString)
-                            .collect(Collectors.toSet());
+                    filePaths = stream
+                        .map(Path::toString)
+                        .collect(Collectors.toSet());
                 }
             } catch (Exception e) {
                 // don't do anything, we failed so just return empty set
@@ -94,8 +113,11 @@ public class UILaunch {
         }
 
         public static boolean containsWords(String search, String[] words) {
-            return Arrays.stream(words).reduce(true, (prev, w) -> prev && search.contains(w),
-                    (prev, curr) -> (prev && curr));
+            return Arrays.stream(words).reduce(
+                true,
+                (prev, w) -> prev && search.contains(w),
+                (prev, curr) -> (prev && curr)
+            );
         }
 
         public static boolean isZipFileMIME(String path) {
@@ -115,7 +137,12 @@ public class UILaunch {
                 return false;
             }
 
-            try (FileChannel channel = FileChannel.open(p, StandardOpenOption.READ)) {
+            try (
+                FileChannel channel = FileChannel.open(
+                    p,
+                    StandardOpenOption.READ
+                )
+            ) {
                 ByteBuffer buffer = ByteBuffer.allocate(4);
                 int bytesRead = channel.read(buffer);
 
@@ -127,7 +154,11 @@ public class UILaunch {
                 int header = buffer.getInt();
                 // The magic number for ZIP is 0x504B0304 (Little Endian)
                 // or 0x504B0708 (for spanned archives)
-                return header == 0x504B0304 || header == 0x504B0506 || header == 0x504B0708;
+                return (
+                    header == 0x504B0304 ||
+                    header == 0x504B0506 ||
+                    header == 0x504B0708
+                );
             } catch (Exception e) {
                 return false; // failed somehow, just give up
             }
@@ -141,7 +172,11 @@ public class UILaunch {
             return checkDir(dir, true, terms);
         }
 
-        public static String checkDir(String dir, boolean ignoreDir, String... terms) {
+        public static String checkDir(
+            String dir,
+            boolean ignoreDir,
+            String... terms
+        ) {
             Set<String> files = listFiles(dir, ignoreDir);
             for (String f : files) {
                 if (containsWords(f, terms)) {
@@ -169,17 +204,30 @@ public class UILaunch {
             Path zipPath = Path.of(zipFilePath);
             Path destPath = Path.of(destDir);
             if (!createDirIfAbsent(zipPath)) {
-                exitProgram(-1, "Unable to create directories at \n\t%s\nMaybe need files permissions?", destDir);
+                exitProgram(
+                    -1,
+                    "Unable to create directories at \n\t%s\nMaybe need files permissions?",
+                    destDir
+                );
             }
 
-            try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipPath))) {
+            try (
+                ZipInputStream zis = new ZipInputStream(
+                    Files.newInputStream(zipPath)
+                )
+            ) {
                 ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
                     Path filePath = destPath.resolve(entry.getName());
 
-                    if (!filePath.normalize().startsWith(destPath.normalize())) {
+                    if (
+                        !filePath.normalize().startsWith(destPath.normalize())
+                    ) {
                         zis.closeEntry();
-                        exitProgram(-1, "Bad zip entry. Unable to correctly extract files.");
+                        exitProgram(
+                            -1,
+                            "Bad zip entry. Unable to correctly extract files."
+                        );
                     }
 
                     if (entry.isDirectory()) {
@@ -187,7 +235,9 @@ public class UILaunch {
                     } else {
                         Files.createDirectories(filePath.getParent());
 
-                        try (OutputStream os = Files.newOutputStream(filePath)) {
+                        try (
+                            OutputStream os = Files.newOutputStream(filePath)
+                        ) {
                             byte[] buffer = new byte[8192];
                             int len = 0;
                             while ((len = zis.read(buffer)) > 0) {
@@ -209,7 +259,9 @@ public class UILaunch {
                 CompetitionDir = F.stream().findFirst().orElse("");
                 if (CompetitionDir.equals("")) {
                     cleanUpTemp();
-                    exitProgram("Could not find competition root directory within unzipped data.");
+                    exitProgram(
+                        "Could not find competition root directory within unzipped data."
+                    );
                 } else {
                     // System.out.println(CompetitionDir);
                 }
@@ -242,27 +294,30 @@ public class UILaunch {
             if (delete(Path.of(CompetitionDir))) {
                 System.out.println("Cleaned up temporary files.");
             } else {
-                System.out.printf("Unable to clean up temp files at:\n\t%s\n", CompetitionDir);
+                System.out.printf(
+                    "Unable to clean up temp files at:\n\t%s\n",
+                    CompetitionDir
+                );
             }
         }
 
         public static String getFileName(String filePath) {
-            return filePath != null ? Path.of(filePath).getFileName().toString() : "";
+            return filePath != null
+                ? Path.of(filePath).getFileName().toString()
+                : "";
         }
 
         public static List<String> readLines(File f) {
             ArrayList<String> lines = new ArrayList<>();
             try (Scanner s = new Scanner(f)) {
-                while (s.hasNextLine())
-                    lines.add(s.nextLine());
-            } catch (FileNotFoundException e) {
-
-            }
+                while (s.hasNextLine()) lines.add(s.nextLine());
+            } catch (FileNotFoundException e) {}
             return lines;
         }
     }
 
     public static class Problem {
+
         private final String name;
         private final String judgeDataPath, correctCodePath, judgeOutPath;
         private int numTries = 0;
@@ -272,11 +327,15 @@ public class UILaunch {
         @Override
         public String toString() {
             return String.format(
-                    "%s [Accepted=%b, Attemps=%2d, Points Awarded=%2d]\n\tJudge Data File: %s\n\tJudge Output: %s\n\tStudent Data File:%s\n",
-                    name, accepted, numTries, getScore(),
-                    IOUtils.getFileName(judgeDataPath),
-                    IOUtils.getFileName(judgeOutPath),
-                    IOUtils.getFileName(studentDataPath));
+                "%s [Accepted=%b, Attemps=%2d, Points Awarded=%2d]\n\tJudge Data File: %s\n\tJudge Output: %s\n\tStudent Data File:%s\n",
+                name,
+                accepted,
+                numTries,
+                getScore(),
+                IOUtils.getFileName(judgeDataPath),
+                IOUtils.getFileName(judgeOutPath),
+                IOUtils.getFileName(studentDataPath)
+            );
             // judgeDataPath, judgeOutPath, studentDataPath);
         }
 
@@ -296,7 +355,9 @@ public class UILaunch {
         }
 
         public int getScore() {
-            return accepted ? PROBLEM_TOTAL_SCORE - (numTries - 1) * ATTEMPT_PENALTY : 0;
+            return accepted
+                ? PROBLEM_TOTAL_SCORE - (numTries - 1) * ATTEMPT_PENALTY
+                : 0;
         }
 
         public boolean isAccepted() {
@@ -309,21 +370,29 @@ public class UILaunch {
 
         // TODO: move this somewhere else
         private String centerString(String s, int width) {
-            return String.format("%s%s%s",
-                    " ".repeat((width - s.length()) / 2),
-                    s,
-                    " ".repeat((width - s.length() + 1) / 2));
+            return String.format(
+                "%s%s%s",
+                " ".repeat((width - s.length()) / 2),
+                s,
+                " ".repeat((width - s.length() + 1) / 2)
+            );
         }
 
         public void run(String studentCodePath) {
             IOUtils.createDirIfAbsent(Path.of(CompetitionExecutionDir));
-            System.out.printf("========== Compiling %s ==========\n", centerString(getName(), 10));
+            System.out.printf(
+                "========== Compiling %s ==========\n",
+                centerString(getName(), 10)
+            );
             int status = compileStudentCode(studentCodePath, false);
             if (status != 0) {
                 System.out.println("Failed to compile");
                 return;
             }
-            System.out.printf("========== Running   %s ==========\n", centerString(getName(), 10));
+            System.out.printf(
+                "========== Running   %s ==========\n",
+                centerString(getName(), 10)
+            );
             executeStudentCode(false);
             cleanUpExecution();
         }
@@ -331,10 +400,12 @@ public class UILaunch {
         // the sins of the father pass down to the son
         // (IOUtils.readLines shouldn't have ever existed)
         public boolean check(String studentCodePath) {
-
             // run student code
             IOUtils.createDirIfAbsent(Path.of(CompetitionExecutionDir));
-            System.out.printf("========== Compiling %s ==========\n", centerString(getName(), 10));
+            System.out.printf(
+                "========== Compiling %s ==========\n",
+                centerString(getName(), 10)
+            );
             int status = compileStudentCode(studentCodePath, false);
             if (status != 0) {
                 System.out.println("Failed to compile.");
@@ -357,10 +428,16 @@ public class UILaunch {
 
         public int compileStudentCode(String studentCodePath, boolean isJudge) {
             try {
-                String fileName = Path.of(studentCodePath).getFileName().toString();
-                Files.copy(Path.of(studentCodePath), Path.of(CompetitionExecutionDir, fileName));
-                ProcessBuilder pb = new ProcessBuilder("javac", fileName).directory(new File(CompetitionExecutionDir))
-                        .inheritIO();
+                String fileName = Path.of(studentCodePath)
+                    .getFileName()
+                    .toString();
+                Files.copy(
+                    Path.of(studentCodePath),
+                    Path.of(CompetitionExecutionDir, fileName)
+                );
+                ProcessBuilder pb = new ProcessBuilder("javac", fileName)
+                    .directory(new File(CompetitionExecutionDir))
+                    .inheritIO();
                 if (!isJudge) {
                     pb.redirectOutput(Redirect.INHERIT);
                 }
@@ -374,13 +451,23 @@ public class UILaunch {
             String dataPath = isJudge ? judgeDataPath : studentDataPath;
             try {
                 if (dataPath != null) {
-                    Files.copy(Path.of(dataPath),
-                            Path.of(CompetitionExecutionDir, String.format("%s.dat", name.toLowerCase())));
+                    Files.copy(
+                        Path.of(dataPath),
+                        Path.of(
+                            CompetitionExecutionDir,
+                            String.format("%s.dat", name.toLowerCase())
+                        )
+                    );
                 }
-                ProcessBuilder pb = new ProcessBuilder("java", name).directory(new File(CompetitionExecutionDir));
+                ProcessBuilder pb = new ProcessBuilder("java", name).directory(
+                    new File(CompetitionExecutionDir)
+                );
                 File studentOutputFile = null;
                 if (isJudge) {
-                    studentOutputFile = File.createTempFile(name, "student-output");
+                    studentOutputFile = File.createTempFile(
+                        name,
+                        "student-output"
+                    );
                     studentOutputFile.deleteOnExit();
                     pb.redirectOutput(studentOutputFile);
                 } else {
@@ -394,8 +481,7 @@ public class UILaunch {
         }
 
         public boolean judge(String studentCodePath) {
-            if (accepted)
-                return true;
+            if (accepted) return true;
 
             numTries++;
             IOUtils.createDirIfAbsent(Path.of(CompetitionExecutionDir));
@@ -421,37 +507,50 @@ public class UILaunch {
         private boolean isCorrectOutput(File studentOutput) {
             File judgeOutput = new File(judgeOutPath);
             if (USE_LEVENSHTEIN_JUDGING) {
-                return diffOutput(judgeOutput, studentOutput) <= MAX_LEVENSHTEIN_DISTANCE;
+                return (
+                    diffOutput(judgeOutput, studentOutput) <=
+                    MAX_LEVENSHTEIN_DISTANCE
+                );
             }
 
             // fallback to simple .equals approach
             return isSameOutput(judgeOutput, studentOutput);
         }
 
-        private boolean isCorrectOutput(List<String> correctOutput, List<String> studentOutput) {
-            BufferedReader correct = new BufferedReader(new StringReader(String.join("\n", correctOutput)));
-            BufferedReader student = new BufferedReader(new StringReader(String.join("\n", studentOutput)));
+        private boolean isCorrectOutput(
+            List<String> correctOutput,
+            List<String> studentOutput
+        ) {
+            BufferedReader correct = new BufferedReader(
+                new StringReader(String.join("\n", correctOutput))
+            );
+            BufferedReader student = new BufferedReader(
+                new StringReader(String.join("\n", studentOutput))
+            );
             if (USE_LEVENSHTEIN_JUDGING) {
                 return diffOutput(correct, student) <= MAX_LEVENSHTEIN_DISTANCE;
             }
 
             // fallback to simple .equals approach
             return isSameOutput(correct, student);
-
         }
 
         private boolean isSameOutput(File correctOutput, File studentOutput) {
             try {
-                return isSameOutput(new BufferedReader(new FileReader(correctOutput)),
-                        new BufferedReader(new FileReader(studentOutput)));
-
+                return isSameOutput(
+                    new BufferedReader(new FileReader(correctOutput)),
+                    new BufferedReader(new FileReader(studentOutput))
+                );
             } catch (FileNotFoundException e) {
                 return false;
             }
         }
 
         @SuppressWarnings("ConvertToTryWithResources")
-        private boolean isSameOutput(BufferedReader correctReader, BufferedReader studentReader) {
+        private boolean isSameOutput(
+            BufferedReader correctReader,
+            BufferedReader studentReader
+        ) {
             try {
                 String c = correctReader.readLine();
                 String s = studentReader.readLine();
@@ -472,10 +571,8 @@ public class UILaunch {
 
                 // make sure that neither the correct answer nor the student answer has an extra
                 // blank line
-                if (c != null && c.isBlank())
-                    c = null;
-                if (s != null && s.isBlank())
-                    s = null;
+                if (c != null && c.isBlank()) c = null;
+                if (s != null && s.isBlank()) s = null;
 
                 return ((c == null || s == null) && (s == null && c == null));
             } catch (IOException e) {
@@ -485,15 +582,20 @@ public class UILaunch {
 
         private int diffOutput(File correctOutput, File studentOutput) {
             try {
-                return diffOutput(new BufferedReader(new FileReader(correctOutput)),
-                        new BufferedReader(new FileReader(studentOutput)));
+                return diffOutput(
+                    new BufferedReader(new FileReader(correctOutput)),
+                    new BufferedReader(new FileReader(studentOutput))
+                );
             } catch (FileNotFoundException e) {
                 return Integer.MAX_VALUE;
             }
         }
 
         @SuppressWarnings("ConvertToTryWithResources")
-        private int diffOutput(BufferedReader correctReader, BufferedReader studentReader) {
+        private int diffOutput(
+            BufferedReader correctReader,
+            BufferedReader studentReader
+        ) {
             try {
                 int distance = 0;
                 String c = correctReader.readLine();
@@ -509,10 +611,8 @@ public class UILaunch {
 
                 // make sure that neither the correct answer nor the student answer has an extra
                 // blank line
-                if (c != null && c.isBlank())
-                    c = null;
-                if (s != null && s.isBlank())
-                    s = null;
+                if (c != null && c.isBlank()) c = null;
+                if (s != null && s.isBlank()) s = null;
                 // if either c or s is null and they are not both null, then one did not finish,
                 // so completely wrong output
                 if ((c == null || s == null) && !(s == null && c == null)) {
@@ -531,8 +631,7 @@ public class UILaunch {
         }
 
         private static int min(int... numbers) {
-            return Arrays.stream(numbers)
-                    .min().orElse(Integer.MAX_VALUE);
+            return Arrays.stream(numbers).min().orElse(Integer.MAX_VALUE);
         }
 
         private static int levenshtein(String x, String y) {
@@ -545,10 +644,15 @@ public class UILaunch {
                     } else if (j == 0) {
                         dp[i][j] = i;
                     } else {
-                        dp[i][j] = min(dp[i - 1][j - 1]
-                                + costOfSubstitution(x.charAt(i - 1), y.charAt(j - 1)),
-                                dp[i - 1][j] + 1,
-                                dp[i][j - 1] + 1);
+                        dp[i][j] = min(
+                            dp[i - 1][j - 1] +
+                                costOfSubstitution(
+                                    x.charAt(i - 1),
+                                    y.charAt(j - 1)
+                                ),
+                            dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1
+                        );
                     }
                 }
             }
@@ -558,6 +662,7 @@ public class UILaunch {
     }
 
     public static class Competition {
+
         Map<String, Problem> problems = new HashMap<>();
         public PrintStream out = System.out;
 
@@ -565,12 +670,15 @@ public class UILaunch {
         public String toString() {
             int totalScore = 0;
             StringBuilder sb = new StringBuilder(
-                    "========================= Start Problem List =========================\n");
+                "========================= Start Problem List =========================\n"
+            );
             for (Problem p : problems.values()) {
                 sb.append(p.toString());
                 totalScore += p.getScore();
             }
-            sb.append("=========================  End Problem List  =========================\n");
+            sb.append(
+                "=========================  End Problem List  =========================\n"
+            );
             sb.append("Total Score: ");
             sb.append(totalScore);
             sb.append("\n");
@@ -586,11 +694,19 @@ public class UILaunch {
         }
 
         public int getContestScore() {
-            return problems.values().stream().map(p -> p.getScore()).reduce(0, (a, b) -> a + b);
+            return problems
+                .values()
+                .stream()
+                .map(p -> p.getScore())
+                .reduce(0, (a, b) -> a + b);
         }
 
         public static Competition ReadFromDir(String... judgeFolderKeywords) {
-            String judgePath = IOUtils.checkDir(CompetitionDir, false, judgeFolderKeywords);
+            String judgePath = IOUtils.checkDir(
+                CompetitionDir,
+                false,
+                judgeFolderKeywords
+            );
             if (judgePath == null) {
                 // IOUtils.cleanUpTemp();
                 exitProgram(-1, "Could Not Find Judge Output Files.");
@@ -598,48 +714,73 @@ public class UILaunch {
             Set<String> files = IOUtils.listFiles(judgePath);
             Set<String> problemNames = new TreeSet<>();
 
-            files.stream().filter(f -> !(f.endsWith(".out") || f.endsWith(".dat"))).forEach(f -> {
-                problemNames.add(Path.of(f).getFileName().toString().split("\\.")[0]);
-            });
+            files
+                .stream()
+                .filter(f -> !(f.endsWith(".out") || f.endsWith(".dat")))
+                .forEach(f -> {
+                    problemNames.add(
+                        Path.of(f).getFileName().toString().split("\\.")[0]
+                    );
+                });
 
             Competition competition = new Competition();
             // surely there's a better way, but I don't really care enough to make it faster
             // (since there should only ever be 12 problems)
-            problemNames.stream().forEach(name -> {
-                String nameLC = name.toLowerCase();
-                String judgeOut = null;
-                String judgeData = null;
-                String codePath = null;
-                for (String f : files.stream()
-                        .filter(f -> Path.of(f).getFileName().toString().toLowerCase().startsWith(nameLC))
+            problemNames
+                .stream()
+                .forEach(name -> {
+                    String nameLC = name.toLowerCase();
+                    String judgeOut = null;
+                    String judgeData = null;
+                    String codePath = null;
+                    for (String f : files
+                        .stream()
+                        .filter(f ->
+                            Path.of(f)
+                                .getFileName()
+                                .toString()
+                                .toLowerCase()
+                                .startsWith(nameLC)
+                        )
                         .collect(Collectors.toList())) {
-                    @SuppressWarnings("SingleCharRegex")
-                    String ext = f.split("\\.")[1];
-                    switch (ext) {
-                        case "out" -> judgeOut = f;
-                        case "dat" -> judgeData = f;
-                        case "java" -> codePath = f;
-                        default -> {
+                        @SuppressWarnings("SingleCharRegex")
+                        String ext = f.split("\\.")[1];
+                        switch (ext) {
+                            case "out" -> judgeOut = f;
+                            case "dat" -> judgeData = f;
+                            case "java" -> codePath = f;
+                            default -> {
+                            }
                         }
                     }
-                }
 
-                if (!notNull(judgeOut, codePath))
-                    return; // couldn't find data, but not sure about judge data (since Q1 lacks a data
-                            // file)
+                    if (!notNull(judgeOut, codePath)) return; // couldn't find data, but not sure about judge data (since Q1 lacks a data
+                    // file)
 
-                competition.getProblems().put(name.toLowerCase(), new Problem(name, judgeData, judgeOut, codePath));
-            });
+                    competition
+                        .getProblems()
+                        .put(
+                            name.toLowerCase(),
+                            new Problem(name, judgeData, judgeOut, codePath)
+                        );
+                });
             // now, we then try to find the "A202X_StudentData" folder
-            String studentDataPath = IOUtils.checkDir(CompetitionDir, false, "StudentData");
+            String studentDataPath = IOUtils.checkDir(
+                CompetitionDir,
+                false,
+                "StudentData"
+            );
             if (studentDataPath == null) {
                 System.out.println(
-                        "[WARNING] Unable to extract student program data. Will be unable to test student code.");
+                    "[WARNING] Unable to extract student program data. Will be unable to test student code."
+                );
             }
             for (String dataFile : IOUtils.listFiles(studentDataPath)) {
                 String fileName = IOUtils.getFileName(dataFile);
                 String problemName = fileName.split("\\.")[0];
-                competition.getProblem(problemName).setStudentDataPath(dataFile);
+                competition
+                    .getProblem(problemName)
+                    .setStudentDataPath(dataFile);
             }
             return competition;
         }
@@ -652,26 +793,29 @@ public class UILaunch {
             for (Problem p : problems.values()) {
                 String name = p.getName();
                 try {
-                    Files.createFile(Path.of(CurrentDir, String.format("%s.java", name)));
-                } catch (IOException e) {
-                }
+                    Files.createFile(
+                        Path.of(CurrentDir, String.format("%s.java", name))
+                    );
+                } catch (IOException e) {}
             }
         }
 
         public void printHelp(PrintStream out) {
             out.println(
-                    """
-                            Summary Of Commands:
+                """
+                Summary Of Commands:
 
-                            "list" -- lists problems
-                            "judge <problem>" -- judges the problem
-                            "run <problem>" -- runs the problem code with student data
-                            "check <problem>" -- checks if the problem code produces the same solution using student data
-                            "show <problem>" -- shows your current code for the problem that it would run/judge
-                            "clear" -- clears the screen
-                            "exit" -- stops the competition
-                            "restart" -- (only useful for development) effectively "replaces" the current instance of the program with a fresh one
-                            "help" -- shows this message again""");
+                "list" -- lists problems
+                "judge <problem>" -- judges the problem
+                "run <problem>" -- runs the problem code with student data
+                "check <problem>" -- checks if the problem code produces the same solution using student data
+                "show <problem>" -- shows your current code for the problem that it would run/judge
+                "clear" -- clears the screen
+                "exit" -- stops the competition
+                "here" -- opens
+                "restart" -- (only useful for development) effectively "replaces" the current instance of the program with a fresh one
+                "help" -- shows this message again"""
+            );
         }
 
         public void run(PrintStream out, Scanner input) {
@@ -689,11 +833,14 @@ public class UILaunch {
                         case "check" -> check(problemName);
                         case "clear" -> clear(); // doesn't work
                         case "show" -> show(problemName);
+                        case "here" -> explorer();
                         case "exec" -> {
                             if (parts.length < 2) {
                                 System.out.println("Insufficient Arguments.");
                             } else {
-                                exec(Arrays.copyOfRange(parts, 1, parts.length));
+                                exec(
+                                    Arrays.copyOfRange(parts, 1, parts.length)
+                                );
                             }
                         }
                         case "exit" -> {
@@ -708,45 +855,71 @@ public class UILaunch {
                 }
             } catch (Exception e) {
                 System.out.println(e);
-                System.out.println("Unknown Error Occured. See above for details.");
+                System.out.println(
+                    "Unknown Error Occured. See above for details."
+                );
                 IOUtils.cleanUpTemp();
             }
         }
 
+        private void explorer() {
+            String[] cmd = null;
+            if (IsWindows) {
+                cmd = new String[] { "explorer.exe", "." };
+            } else if (IsMac) {
+                cmd = new String[] { "open", "." };
+            } else {
+                cmd = new String[] { "xdg-open", "." };
+            }
+
+            try {
+                ProcessBuilder pb = new ProcessBuilder(cmd);
+                pb.start().waitFor();
+            } catch (IOException | InterruptedException e) {
+                // do nothing, don't care
+            }
+        }
+
         private String getStudentCodePath(Problem p) {
-            return Path.of(CurrentDir, String.format("%s.java", p.name)).toString();
+            return Path.of(
+                CurrentDir,
+                String.format("%s.java", p.name)
+            ).toString();
         }
 
         private Problem getUserSelectedProblem(String name) {
             Problem p = problems.getOrDefault(name.trim().toLowerCase(), null);
             if (p == null) {
-                out.println("Invalid problem selected. Could not find problem: " + name);
+                out.println(
+                    "Invalid problem selected. Could not find problem: " + name
+                );
             }
             return p;
         }
 
         private void restart() {
             try {
-                System.out.println("Bootstrapping the lastest version to run on current process...");
-                (new ProcessBuilder("java", "UILaunch.java").inheritIO()).start().waitFor();
-            } catch (Exception e) {
-            }
+                System.out.println(
+                    "Bootstrapping the lastest version to run on current process..."
+                );
+                (
+                    new ProcessBuilder("java", "UILaunch.java").inheritIO()
+                ).start().waitFor();
+            } catch (Exception e) {}
             IOUtils.cleanUpTemp();
             System.exit(0);
-
         }
 
         private void show(String problemName) {
             Problem p = getUserSelectedProblem(problemName);
-            if (p == null)
-                return;
+            if (p == null) return;
 
             try {
-                List<String> lines = Files.readAllLines(Path.of(CurrentDir, String.format("%s.java", p.getName())));
+                List<String> lines = Files.readAllLines(
+                    Path.of(CurrentDir, String.format("%s.java", p.getName()))
+                );
                 lines.forEach(l -> out.println(l));
-
-            } catch (IOException e) {
-            }
+            } catch (IOException e) {}
         }
 
         private void ansiClear() {
@@ -763,8 +936,7 @@ public class UILaunch {
                     pb = new ProcessBuilder("clear");
                 }
                 pb.inheritIO().start().waitFor();
-            } catch (IOException | InterruptedException ex) {
-            }
+            } catch (IOException | InterruptedException ex) {}
         }
 
         private void clear() {
@@ -786,13 +958,11 @@ public class UILaunch {
             } catch (IOException e) {
             } catch (InterruptedException e) {
             }
-
         }
 
         private void judge(String problemName) {
             Problem p = getUserSelectedProblem(problemName);
-            if (p == null)
-                return;
+            if (p == null) return;
 
             if (p.accepted) {
                 out.println("Problem already accepted.");
@@ -803,21 +973,17 @@ public class UILaunch {
                     System.out.println("Solution Deined.");
                 }
             }
-
         }
 
         private void run(String problemName) {
             Problem p = getUserSelectedProblem(problemName);
-            if (p == null)
-                return;
+            if (p == null) return;
             p.run(getStudentCodePath(p));
-
         }
 
         private void check(String problemName) {
             Problem p = getUserSelectedProblem(problemName);
-            if (p == null)
-                return;
+            if (p == null) return;
             if (p.check(getStudentCodePath(p))) {
                 out.println("Correct Solution.");
             } else {
@@ -827,11 +993,16 @@ public class UILaunch {
     }
 
     private static String requestUserDataZip() {
-        System.out.println("Please enter the path for the competition zip file.");
+        System.out.println(
+            "Please enter the path for the competition zip file."
+        );
         final JFileChooser fc = new JFileChooser();
         fc.setCurrentDirectory(Path.of(CurrentDir).toFile());
         fc.setAcceptAllFileFilterUsed(false);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("ZIP files", "zip");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "ZIP files",
+            "zip"
+        );
         fc.setFileFilter(filter);
         // default preferred size seems small
         Dimension d = fc.getPreferredSize();
@@ -854,25 +1025,35 @@ public class UILaunch {
         // competitionZip can be passed as cli args, discovered in same directory, or
         // selected using a java swing FileChooser
         String competitionZip = nullish(
-                IOUtils.checkDir(CurrentDir, "UILCS", "Programming", "DataFiles"),
-                args.length > 0 ? args[0] : null);
+            IOUtils.checkDir(CurrentDir, "UILCS", "Programming", "DataFiles"),
+            args.length > 0 ? args[0] : null
+        );
 
         if (competitionZip == null) {
             competitionZip = requestUserDataZip();
-            if (competitionZip.isEmpty() || Files.notExists(Path.of(competitionZip))) {
+            if (
+                competitionZip.isEmpty() ||
+                Files.notExists(Path.of(competitionZip))
+            ) {
                 System.out.println("Invalid Path. Exiting Program.");
                 System.exit(-1);
             }
         }
 
         // Step 2: Inflate the zip file to the temp directory
-        System.out.printf("Unzipping competition files to: \n\t%s\n", CompetitionDirRoot);
+        System.out.printf(
+            "Unzipping competition files to: \n\t%s\n",
+            CompetitionDirRoot
+        );
         IOUtils.unzip(competitionZip, CompetitionDirRoot);
 
         // Step 3: Read Competition Data and set it up
         System.out.println("Reading competition data...");
         Competition competition = Competition.ReadFromDir();
-        System.out.printf("Read %d problems from data.\n", competition.getProblems().size());
+        System.out.printf(
+            "Read %d problems from data.\n",
+            competition.getProblems().size()
+        );
         System.out.println(competition);
 
         // Step 4: Create blank java files for student use
