@@ -104,7 +104,7 @@ public class UILaunch {
     public static String JudgeFolderPath;
     public static String CompetitionDir; // depends on the contest directory
 
-    // currently using UploadThing
+    // currently using UploadThing as file host due to UT Box being difficult to download from
     public static final Map<String, String> UIL_FILE_URLS = new TreeMap<
         String,
         String
@@ -143,10 +143,12 @@ public class UILaunch {
                 outputPath.toString()
             );
             FileChannel fc = fileOut.getChannel();
+            System.out.printf("Downloading to %s\n", outputPath.toString());
             fc.transferFrom(rbc, 0, Long.MAX_VALUE);
             fileOut.close();
             return outputPath.toString();
         } catch (Exception e) {
+            System.out.println(e);
             System.out.println("Fatal Error. Could not download contest data.");
         }
 
@@ -420,7 +422,7 @@ public class UILaunch {
         @Override
         public String toString() {
             return String.format(
-                "%s [Accepted=%b, Attemps=%2d, Points Awarded=%2d]\n",
+                "%10s [Accepted=%b, Attemps=%2d, Points Awarded=%2d]\n",
                 name,
                 accepted,
                 numTries,
@@ -1211,7 +1213,7 @@ public class UILaunch {
             );
             if (Files.exists(expectedPath)) {
                 System.out.printf(
-                    "Found previously downloaded file for %s at %s. Use this file? (y/n) ",
+                    "Found previously ed file for %s at %s. Use this file? (y/n) ",
                     availCompetitions.get(choice),
                     expectedPath.toString()
                 );
@@ -1282,6 +1284,8 @@ public class UILaunch {
     @SuppressWarnings("ConvertToTryWithResources")
     public static void main(String[] args) {
         Scanner terminal = new Scanner(System.in);
+        IOUtils.createDirIfAbsent(Path.of(CompetitionDirRoot));
+        IOUtils.createDirIfAbsent(Path.of(DownloadDir));
 
         // Step 1: Need to find the zip file containing all the data
         // these terms are in the new naming format, and won't work past 2025 district
@@ -1294,7 +1298,7 @@ public class UILaunch {
             exitProgram(-1, "Invalid Path. Exiting Program");
         }
 
-        // Step 2: Inflate the zip file to the temp directory
+        // Step 2: Inflate the zip file to the App Data directory
         System.out.printf(
             "Unzipping competition files to: \n\t%s\n",
             CompetitionDirRoot
