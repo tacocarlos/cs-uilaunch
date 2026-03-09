@@ -1097,7 +1097,7 @@ public class UILaunch {
                 "clear" -- clears the screen
                 "exit" -- stops the competition
                 "here" -- opens the student code directory
-                "dir" -- lists student code directory
+                "dir" -- lists student code directorysd
                 "restart" -- (only useful for development) effectively "replaces" the current instance of the program with a fresh one
                 "help" -- shows this message again"""
             );
@@ -1191,6 +1191,10 @@ public class UILaunch {
                 );
                 return;
             }
+            System.out.printf(
+                "Student Packet URL:\n\n\t%s\n\n",
+                SelectedCompetition.studentPacketURL
+            );
             openItem(
                 SelectedCompetition.studentPacketURL,
                 "Opened student packet in default application.",
